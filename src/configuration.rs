@@ -20,4 +20,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     // Search for file named `configuration`
     // Will search for top-level files with compatible extension (yaml, json, etc.)
     settings.merge(config::File::with_name("configuration"))?;
+
+    // Try to convert the configuration values into Settings type
+    settings.try_into()
 }
