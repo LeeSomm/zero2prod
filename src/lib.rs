@@ -6,7 +6,7 @@ use axum::{
 };
 
 #[derive(serde::Deserialize)]
-struct SubscribeFormData {
+pub struct SubscribeFormData {
     name: String,
     email: String,
 }

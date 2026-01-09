@@ -82,7 +82,7 @@ async fn subscribe_returns_200_for_valid_form_data() {
 }
 
 #[tokio::test]
-async fn subscribe_returns_400_when_data_missing() {
+async fn subscribe_returns_422_when_data_missing() {
     let addr = spawn_app().await;
 
     // Generate Http client
@@ -104,7 +104,7 @@ async fn subscribe_returns_400_when_data_missing() {
             .expect("Failed to execute request");
 
         assert_eq!(
-            StatusCode::BAD_REQUEST,
+            StatusCode::UNPROCESSABLE_ENTITY,
             response.status(),
             "The API did not fail with 400 Bad Request when the payload was {error_message}"
         );
