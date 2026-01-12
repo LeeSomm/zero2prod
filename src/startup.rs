@@ -4,10 +4,10 @@ use axum::{
     routing::{get, post},
 };
 
-pub async fn run() {
+pub async fn run(address: String) {
     let app = app();
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind(address).await.unwrap();
     let _ = axum::serve(listener, app).await;
 }
 
