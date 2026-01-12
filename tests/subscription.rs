@@ -1,10 +1,20 @@
 mod common;
 
-use axum::http::StatusCode;
+use axum::{http::StatusCode, routing::connect};
+use sqlx::{Connection, PgConnection};
+use zero2prod::configuration::{self, get_configuration};
 
 #[tokio::test]
 async fn subscribe_returns_200_for_valid_form_data() {
+    // Arrange
     let addr = common::spawn_app().await;
+    let configuration = get_configuration().expect("Failed to read configuration.");
+    let connection_string = configuration.database.connection_string();
+    // The `Connection` trait MUST be in scope for us to invoke
+    // `PgConnection::connect` - it is not an inherent method of the struct!
+    let connection = PgConnection::connect(&connection_string)
+        .await
+        .expect("Failed to connect to Postgres.");
 
     // Generate Http client
     let client = reqwest::Client::new();
