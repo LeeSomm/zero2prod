@@ -17,11 +17,13 @@ name = "zero2prod"
 
 [dependencies]
 axum = { version = "0.8.8", features = ["macros"]}
+chrono = "0.4.42"
 config = "0.15.19"
 reqwest = "0.13.1"
 serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.49.0", features = ["full"] }
 tower = "0.5.2"
+uuid = { version = "1.19.0", features = ["v4"] }
 
 [dependencies.sqlx]
 version = "0.8.6"

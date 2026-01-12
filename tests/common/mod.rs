@@ -1,5 +1,10 @@
-use sqlx::PgPool;
-use zero2prod::{configuration::get_configuration, startup::app, state::AppState};
+use sqlx::{Connection, Executor, PgConnection, PgPool};
+use uuid::Uuid;
+use zero2prod::{
+    configuration::{DatabaseSettings, get_configuration},
+    startup::app,
+    state::AppState,
+};
 
 pub async fn spawn_app() -> String {
     // Bind to a random free port
@@ -20,12 +25,34 @@ pub async fn spawn_app() -> String {
 
 pub async fn make_app_state() -> AppState {
     // Panic if we cannot read configuration
-    let config = get_configuration().expect("Failed to read configuration.");
+    let mut config = get_configuration().expect("Failed to read configuration.");
+    // Generate a random database name
+    config.database.database_name = Uuid::new_v4().to_string();
 
-    let db = PgPool::connect(&config.database.connection_string())
-        .await
-        .expect("Failed to connect to Postgres.");
+    let db = configure_database(&config.database).await;
 
     let state = AppState { db, config };
     state
+}
+
+pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
+    // Create database
+    let mut connection = PgConnection::connect(&config.connection_string_without_db())
+        .await
+        .expect("Failed to connect to Postgres.");
+    connection
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
+        .await
+        .expect("Failed to create database.");
+
+    // Migrate database
+    let connection_pool = PgPool::connect(&config.connection_string())
+        .await
+        .expect("Failed to connect to Postgres");
+    sqlx::migrate!("./migrations")
+        .run(&connection_pool)
+        .await
+        .expect("Failed to migrate the database");
+
+    connection_pool
 }
