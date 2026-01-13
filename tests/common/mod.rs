@@ -6,6 +6,7 @@ use zero2prod::{
     state::AppState,
 };
 
+#[allow(dead_code)] // Quiet errors warning about dead code. Struct used in test functions.
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
