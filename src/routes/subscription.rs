@@ -4,6 +4,7 @@ use axum::{
     http::StatusCode,
 };
 use chrono::Utc;
+use tracing::Instrument;
 use uuid::Uuid;
 
 #[derive(serde::Deserialize)]
@@ -19,6 +20,17 @@ pub async fn subscribe(
 ) -> StatusCode {
     let db_pool = &state.db;
 
+    let request_id = Uuid::new_v4();
+    // `info_span` creates a span at the info-level
+    let request_span = tracing::info_span!(
+        "Adding a new subscriber",
+        %request_id,
+        subscriber_email = %sub_info.email,
+        subscriber_name = %sub_info.name
+    );
+    let _request_span_guard = request_span.enter();
+
+    let query_span = tracing::info_span!("Saving new subscriber details in the database");
     match sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -30,11 +42,22 @@ pub async fn subscribe(
         Utc::now()
     )
     .execute(db_pool)
+    .instrument(query_span)
     .await
     {
-        Ok(_) => StatusCode::OK,
+        Ok(_) => {
+            tracing::info!(
+                "request_id {} - New subscriber details have been saved",
+                request_id
+            );
+            StatusCode::OK
+        }
         Err(e) => {
-            println!("Failed to execute query: {e}");
+            tracing::error!(
+                "request_id {} - Failed to execute query: {:?}",
+                request_id,
+                e
+            );
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }

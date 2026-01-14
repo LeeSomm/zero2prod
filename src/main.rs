@@ -17,6 +17,7 @@ async fn main() -> Result<(), std::io::Error> {
                 .or_else(|_| EnvFilter::try_new("zero2prod=info,tower_http=warn"))
                 .expect("Unable to set logging level."),
         )
+        // .with_span_events(FmtSpan::ENTER | FmtSpan::EXIT | FmtSpan::CLOSE) // Uncomment for span events (enter, exit, close)
         .init();
 
     // Panic if we cannot read configuration
