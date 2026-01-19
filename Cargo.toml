@@ -19,11 +19,13 @@ name = "zero2prod"
 axum = { version = "0.8.8", features = ["macros"]}
 chrono = "0.4.42"
 config = "0.15.19"
+http = "1.4.0"
 reqwest = "0.13.1"
+secrecy = { version = "0.10.3", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.49.0", features = ["full"] }
 tower = "0.5.2"
-tower-http = { version = "0.6.8", features = ["trace"] }
+tower-http = { version = "0.6.8", features = ["trace", "request-id"] }
 tracing = { version = "0.1.44", features = ["log"]}
 tracing-bunyan-formatter = "0.3.10"
 tracing-log = "0.2.0"
