@@ -1,5 +1,7 @@
+use std::time::Duration;
+
 use secrecy::ExposeSecret;
-use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use tokio::net::TcpListener;
 
 use zero2prod::configuration::get_configuration;
@@ -19,13 +21,17 @@ async fn main() -> Result<(), std::io::Error> {
     // Panic if we cannot read configuration
     let config = get_configuration().expect("Failed to read configuration.");
 
-    let db = PgPool::connect(config.database.connection_string().expose_secret())
-        .await
+    let db = PgPoolOptions::new()
+        .acquire_timeout(Duration::from_secs(10))
+        .connect_lazy(config.database.connection_string().expose_secret())
         .expect("Failed to connect to Postgres.");
 
     let state = AppState { db, config };
 
-    let addr = format!("0.0.0.0:{}", state.config.application_port);
+    let addr = format!(
+        "{}:{}",
+        state.config.application.host, state.config.application.port
+    );
     let listener = TcpListener::bind(addr).await?;
 
     run(listener, state).await
