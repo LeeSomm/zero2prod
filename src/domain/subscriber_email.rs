@@ -23,7 +23,10 @@ impl AsRef<str> for SubscriberEmail {
 #[cfg(test)]
 mod tests {
     use super::SubscriberEmail;
-    use claims::assert_err;
+    use claims::{assert_err, assert_ok};
+    use fake::Fake;
+    use fake::faker::internet::en::SafeEmail;
+    use proptest::prelude::*;
 
     #[test]
     fn empty_string_is_reject() {
@@ -41,5 +44,18 @@ mod tests {
     fn email_missing_subject_is_rejected() {
         let email = "@domain.com".to_string();
         assert_err!(SubscriberEmail::parse(email));
+    }
+
+    proptest! {
+        #[test]
+        fn valid_emails_are_parsed_successfully(email in safe_email_strategy()) {
+            dbg!(&email);
+            assert_ok!(SubscriberEmail::parse(email));
+        }
+    }
+
+    fn safe_email_strategy() -> impl Strategy<Value = String> {
+        // Use a fixed seed for reproducibility, or use thread_rng()
+        Just(()).prop_perturb(|_, mut rng| SafeEmail().fake_with_rng(&mut rng))
     }
 }

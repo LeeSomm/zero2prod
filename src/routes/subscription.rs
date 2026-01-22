@@ -14,32 +14,51 @@ pub struct SubscribeFormData {
     email: String,
 }
 
+// Trait used for type conversions which can fail
+impl TryFrom<SubscribeFormData> for NewSubscriber {
+    type Error = SubscriberError;
+
+    fn try_from(form_data: SubscribeFormData) -> Result<Self, Self::Error> {
+        let name = SubscriberName::parse(form_data.name).map_err(Self::Error::InvalidName)?;
+        let email = SubscriberEmail::parse(form_data.email).map_err(Self::Error::InvalidEmail)?;
+        Ok(NewSubscriber { email, name })
+    }
+}
+#[derive(Debug)]
+pub enum SubscriberError {
+    InvalidName(String),
+    InvalidEmail(validator::ValidationErrors),
+}
+
+impl std::fmt::Display for SubscriberError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidName(msg) => write!(f, "Invalid name: {}", msg),
+            Self::InvalidEmail(e) => write!(f, "Invalid email: {}", e),
+        }
+    }
+}
+
 #[axum::debug_handler]
 #[tracing::instrument(
     name = "Adding a new subscriber",
-    skip(state, sub_info),
+    skip(state, form_data),
     fields(
-        subscriber_email = %sub_info.email,
-        subscriber_name = %sub_info.name
+        subscriber_email = %form_data.email,
+        subscriber_name = %form_data.name
     )
 )]
 pub async fn subscribe(
     State(state): State<AppState>,
-    Form(sub_info): Form<SubscribeFormData>,
+    Form(form_data): Form<SubscribeFormData>,
 ) -> StatusCode {
     let db_pool = &state.db;
 
-    let name = match SubscriberName::parse(sub_info.name) {
-        Ok(name) => name,
+    let new_subscriber = match form_data.try_into() {
+        // The TryInto trait is automatically implemented for the corresponding type used in TryFrom
+        Ok(subscriber) => subscriber,
         Err(_) => return StatusCode::BAD_REQUEST,
     };
-
-    let email = match SubscriberEmail::parse(sub_info.email) {
-        Ok(email) => email,
-        Err(_) => return StatusCode::BAD_REQUEST,
-    };
-
-    let new_subscriber = NewSubscriber { email, name };
 
     match insert_subscriber(db_pool, &new_subscriber).await {
         Ok(_) => StatusCode::OK,
